@@ -1,0 +1,115 @@
+---
+title: "NYPD Shooting Incident"
+author: "anonymous"
+date: "2024-09-01"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### This is the report of the analyzing NYPD Shooting Incident from 2006 through 2023. It is downloaded from the web site “https://data.gov/”. This dataset contain each recorded represents a shooting incident in NYC. And this database contains information about the location and time of occurrence. In addition, information related to perpetrator and victim are also contained.
+```{r}
+data = read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
+head(data)
+```
+
+#### I count the number of incident.
+
+```{r}
+nrow(data)
+```
+
+#### At first, I viewed the data. You see there are a lot of numeric data, so I can not know what I can tell at one glance. So I do visualization of this data. There are the data of age, sex, race, and so on. In this time I focused on location and time zone, and analyzed the data. And I will discuss about race data.
+
+```{r}
+Borough = unique(data$BORO)
+s = vector(mode = "double", length = 5)
+for (i in 1:5) {
+  s[i] = sum(data$BORO == Borough[i])
+}
+Borough[5] = "STATEN"
+barplot(s, names.arg = Borough,
+        xlab = "Borough",
+        ylab = "number of incident",
+        main = "shooting incident")
+```
+
+#### First I will talk about the analysis to the location. In the data, I find out five borough. I counted the number of incident at each borough and make graph. This is a bar graph of number of incident at each borough, Manhattan, Bronx, Queens, Brooklyn, Staten Island.  We can see Brooklyn is most shooting incident occurred borough. And Staten Island is the least shooting incident occurred borough.
+
+```{r}
+data$hour = substr(data$OCCUR_TIME, 1, 2)
+data$hour <- as.integer(data$hour)
+hour_data = data.frame(matrix(ncol = 2))
+colnames(hour_data) = c("time", "incident")
+for(i in 1:24){
+  hour_data[i, 1] = i-1
+  hour_data[i, 2] = sum(data$hour == i-1)
+}
+barplot(incident~time, hour_data,
+        xlab = "incident hour",
+        ylab = "number of incident",
+        main = "shooting incident")
+```
+#### Second, I studied about time zone. I analyzed the number of occurrence changes over time. I counted the number of incident in the each time zone, made the graph.  In New York City, we find in the morning time, 7-9 o'clock, shooting incident occurred comparatively small number of incident. Number of occurrences increase gradually time pass and midnight time, 11PM is most time zone.
+
+```{r}
+library(leaflet)
+NYmap <- leaflet()
+NYmap <- addTiles(NYmap)
+NYmap <- addCircleMarkers(NYmap, radius=1, color='black',
+                        lng=data$Longitude,
+                        lat=data$Latitude)
+NYmap
+```
+
+####  Next, I will discuss about the detail of the location of occurrences. This database contain the data of latitude and longitude.  I show the location of incident in the map. I see the positions where incident occurs are not uniformly, uneven distributed. We find there are approximately three densely packed area. And I find there are some area outside of three area where incident occurs frequently. Previously I explain Staten Island is  borough that the least shooting incident occurred, but looking into, there is an area incident occurs frequently. At north-east bay. Although, there are too many point in this map, and there is difficulty to know about incident.Although, there are too many point in this map, and there is difficulty to know about incident. Next I analyze ocurrace each time zone.
+
+```{r}
+library(leaflet)
+NYmap <- leaflet()
+NYmap <- addTiles(NYmap)
+NYmap <- addCircleMarkers(NYmap, radius=1, color='blue',
+                        lng=data$Longitude[hour_data == 8],
+                        lat=data$Latitude[hour_data == 8])
+```
+
+```{r}
+NYmap <- addCircleMarkers(NYmap, radius=1, color='red',
+                         lng=data$Longitude[hour_data == 20],
+                         lat=data$Latitude[hour_data == 20])
+NYmap
+```
+
+#### I discuss about combine location and timezone I analyzed time and location of the incident, and showed the location of incident in each timezone in the map. Bule points show the location of occurrence. where the incident ocuur in the morning(8AM), red points show the location of occurrence the incident occur in evening(8PM) is incident occur. I found the location where the incident occur is not differ 8AM and 8PM.
+
+
+```{r}
+Race = unique(data$PERP_RACE)
+Race
+```
+
+```{r}
+Race_name = Race
+Race_name[3] = "BLANK"
+Race_name[4] = "unknown"
+Race_name[5] = "B-HIS"
+Race_name[6] = "W-HIS"
+Race_name[7] = "AS/PA"
+Race_name[8] = "WHITE"
+Race_name[9] = "NATIVE"
+
+race_table = vector(mode = "double", length = 9)
+for (i in 1:9) {
+  race_table[i] = sum(data$PERP_RACE == Race[i])
+}
+barplot(race_table,  las=3, names.arg = Race_name, 
+        xlab = "perpetrator",
+        ylab = "number of incident",
+        main = "shooting incident")
+```
+
+#### Additionally, I studied about the data of the perpetrator. I made a bar-graph from the sum of the perpetrator of the each race. Although, We should notice that this data is "recorded data". This mean we can not know about the occurrences that police office is not notice. We analysis only the incident that officially grasped. In the acquired data, the column "PERP_AGE_GROUP", "PERP_SEX", "PERP_RACE", there are many blank cell and "null". It means most of the perpetrator is not arrested or not recorded for some reason. When we analysis the result of these columns, we need to be careful to come to a conclusion especially.
